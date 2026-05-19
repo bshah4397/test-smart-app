@@ -74,6 +74,26 @@ describe("App SMART API integration", () => {
             serverUrl: "https://api.preview.platform.athenahealth.com/fhir/r4",
             fhirUser: "Practitioner/example",
             scope: "launch patient/Patient.r user/Patient.r openid fhirUser"
+          },
+          fhirDebug: {
+            request: {
+              method: "GET",
+              url: "https://api.preview.platform.athenahealth.com/fhir/r4/Patient/athena-patient-1"
+            },
+            response: {
+              status: 403,
+              statusText: "Forbidden",
+              body: {
+                resourceType: "OperationOutcome",
+                issue: [
+                  {
+                    severity: "error",
+                    code: "forbidden",
+                    diagnostics: "Patient read denied by policy"
+                  }
+                ]
+              }
+            }
           }
         }),
         {
@@ -89,6 +109,8 @@ describe("App SMART API integration", () => {
     expect(screen.getByText("Patient lookup failed (403).")).toBeInTheDocument();
     expect(screen.getByText("launch patient/Patient.r user/Patient.r openid fhirUser")).toBeInTheDocument();
     expect(screen.getByText("athena-patient-1")).toBeInTheDocument();
+    expect(screen.getByText("FHIR error response")).toBeInTheDocument();
+    expect(screen.getByText(/Patient read denied by policy/)).toBeInTheDocument();
   });
 
   it("keeps demo mode available for direct non-SMART visits without a session", async () => {

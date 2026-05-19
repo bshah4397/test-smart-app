@@ -54,6 +54,18 @@ export type SmartSessionSummary = {
   expiresAt?: number | null;
 };
 
+export type FhirDebugDetails = {
+  request: {
+    method: "GET";
+    url: string;
+  };
+  response: {
+    status: number;
+    statusText: string;
+    body: unknown;
+  };
+};
+
 type TokenResponse = {
   access_token?: string;
   token_type?: string;
@@ -66,11 +78,13 @@ type TokenResponse = {
 
 export class SmartApiError extends Error {
   statusCode: number;
+  details?: unknown;
 
-  constructor(statusCode: number, message: string) {
+  constructor(statusCode: number, message: string, details?: unknown) {
     super(message);
     this.name = "SmartApiError";
     this.statusCode = statusCode;
+    this.details = details;
   }
 }
 
@@ -312,7 +326,19 @@ export async function fetchPatientContext(session: SmartSession): Promise<{
   const patient = await readJsonResponse(response);
 
   if (!response.ok) {
-    throw new SmartApiError(response.status, `Patient lookup failed (${response.status}).`);
+    throw new SmartApiError(response.status, `Patient lookup failed (${response.status}).`, {
+      fhirDebug: {
+        request: {
+          method: "GET",
+          url: patientUrl
+        },
+        response: {
+          status: response.status,
+          statusText: response.statusText,
+          body: patient
+        }
+      } satisfies FhirDebugDetails
+    });
   }
 
   return {

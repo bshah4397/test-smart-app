@@ -129,6 +129,32 @@ h2 {
   padding-top: 18px;
 }
 
+.fhir-debug {
+  margin-top: 22px;
+  border-top: 1px solid #e7ece9;
+  padding-top: 18px;
+}
+
+.debug-resource {
+  margin-top: 16px;
+}
+
+.debug-resource summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.debug-resource pre {
+  max-height: 260px;
+  margin: 10px 0 0;
+  overflow: auto;
+  border-radius: 6px;
+  background: #10201a;
+  color: #d9f3e6;
+  padding: 14px;
+  font-size: 0.82rem;
+}
+
 .section-heading {
   margin-bottom: 18px;
 }

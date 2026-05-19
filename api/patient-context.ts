@@ -35,13 +35,20 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     } catch (error) {
       const statusCode = error instanceof SmartApiError ? error.statusCode : 500;
       const message = error instanceof Error ? error.message : "Unable to load patient context.";
+      const details =
+        error instanceof SmartApiError && isRecord(error.details) ? error.details : {};
 
       sendJson(res, statusCode, {
         error: message,
-        smartSession: summarizeSmartSession(session)
+        smartSession: summarizeSmartSession(session),
+        ...details
       });
     }
   } catch (error) {
     sendSmartError(res, error);
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

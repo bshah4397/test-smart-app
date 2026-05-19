@@ -20,6 +20,18 @@ export type SmartSessionDetails = {
   expiresAt?: number | null;
 };
 
+export type FhirDebugDetails = {
+  request: {
+    method?: string;
+    url?: string;
+  };
+  response: {
+    status?: number;
+    statusText?: string;
+    body?: unknown;
+  };
+};
+
 export type SmartLaunchSettings = {
   clientId: string;
   scope: string;
@@ -29,11 +41,17 @@ export type SmartLaunchSettings = {
 
 export class SmartPatientContextError extends Error {
   smartSession?: SmartSessionDetails;
+  fhirDebug?: FhirDebugDetails;
 
-  constructor(message: string, smartSession?: SmartSessionDetails) {
+  constructor(
+    message: string,
+    smartSession?: SmartSessionDetails,
+    fhirDebug?: FhirDebugDetails
+  ) {
     super(message);
     this.name = "SmartPatientContextError";
     this.smartSession = smartSession;
+    this.fhirDebug = fhirDebug;
   }
 }
 
@@ -82,7 +100,8 @@ export async function readSmartPatientContext(): Promise<LoadedPatientContext> {
   if (!response.ok) {
     throw new SmartPatientContextError(
       getErrorMessage(payload, `Unable to load SMART session (${response.status}).`),
-      getSmartSessionDetailsFromPayload(payload)
+      getSmartSessionDetailsFromPayload(payload),
+      getFhirDebugDetailsFromPayload(payload)
     );
   }
 
@@ -121,6 +140,18 @@ export function getSmartSessionDetails(error: unknown): SmartSessionDetails | un
   return undefined;
 }
 
+export function getFhirDebugDetails(error: unknown): FhirDebugDetails | undefined {
+  if (error instanceof SmartPatientContextError) {
+    return error.fhirDebug;
+  }
+
+  if (typeof error === "object" && error !== null && "fhirDebug" in error) {
+    return normalizeFhirDebugDetails((error as { fhirDebug?: unknown }).fhirDebug);
+  }
+
+  return undefined;
+}
+
 async function readJsonResponse(response: Response): Promise<unknown> {
   const text = await response.text();
 
@@ -153,6 +184,14 @@ function getSmartSessionDetailsFromPayload(payload: unknown): SmartSessionDetail
   return normalizeSmartSessionDetails((payload as { smartSession?: unknown }).smartSession);
 }
 
+function getFhirDebugDetailsFromPayload(payload: unknown): FhirDebugDetails | undefined {
+  if (typeof payload !== "object" || payload === null || !("fhirDebug" in payload)) {
+    return undefined;
+  }
+
+  return normalizeFhirDebugDetails((payload as { fhirDebug?: unknown }).fhirDebug);
+}
+
 function normalizeSmartSessionDetails(value: unknown): SmartSessionDetails | undefined {
   if (typeof value !== "object" || value === null) {
     return undefined;
@@ -180,6 +219,40 @@ function normalizeSmartSessionDetails(value: unknown): SmartSessionDetails | und
       typeof details.expiresAt === "number" || details.expiresAt === null
         ? details.expiresAt
         : undefined
+  };
+}
+
+function normalizeFhirDebugDetails(value: unknown): FhirDebugDetails | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const details = value as Record<string, unknown>;
+  const request = details.request;
+  const response = details.response;
+
+  if (
+    typeof request !== "object" ||
+    request === null ||
+    typeof response !== "object" ||
+    response === null
+  ) {
+    return undefined;
+  }
+
+  const requestRecord = request as Record<string, unknown>;
+  const responseRecord = response as Record<string, unknown>;
+
+  return {
+    request: {
+      method: stringOrUndefined(requestRecord.method),
+      url: stringOrUndefined(requestRecord.url)
+    },
+    response: {
+      status: typeof responseRecord.status === "number" ? responseRecord.status : undefined,
+      statusText: stringOrUndefined(responseRecord.statusText),
+      body: responseRecord.body
+    }
   };
 }
 

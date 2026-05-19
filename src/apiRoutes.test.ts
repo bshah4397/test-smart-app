@@ -173,10 +173,23 @@ describe("Vercel SMART API routes", () => {
       "test-secret"
     );
     vi.mocked(fetch).mockResolvedValue(
-      new Response(JSON.stringify({ resourceType: "OperationOutcome" }), {
+      new Response(
+        JSON.stringify({
+          resourceType: "OperationOutcome",
+          issue: [
+            {
+              severity: "error",
+              code: "forbidden",
+              diagnostics: "Patient read denied by policy"
+            }
+          ]
+        }),
+        {
         status: 403,
+        statusText: "Forbidden",
         headers: { "Content-Type": "application/fhir+json" }
-      })
+        }
+      )
     );
     const req = createRequest({
       url: "/api/patient-context",
@@ -198,6 +211,26 @@ describe("Vercel SMART API routes", () => {
         scope: "launch patient/Patient.r user/Patient.r openid fhirUser",
         fhirUser: "Practitioner/example",
         expiresAt: 1778540000
+      },
+      fhirDebug: {
+        request: {
+          method: "GET",
+          url: "https://fhir.example/r4/Patient/patient-123"
+        },
+        response: {
+          status: 403,
+          statusText: "Forbidden",
+          body: {
+            resourceType: "OperationOutcome",
+            issue: [
+              {
+                severity: "error",
+                code: "forbidden",
+                diagnostics: "Patient read denied by policy"
+              }
+            ]
+          }
+        }
       }
     });
     expect(JSON.stringify(payload)).not.toContain("access-token");

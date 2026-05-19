@@ -3,12 +3,14 @@ import { demoPatient } from "./demoPatient";
 import { PatientTable } from "./PatientTable";
 import {
   authorizeSmartLaunch,
+  getFhirDebugDetails,
   getErrorMessage,
   getSmartCallbackError,
   getSmartLaunchSettings,
   getSmartSessionDetails,
   hasSmartCallbackQuery,
   hasSmartLaunchQuery,
+  type FhirDebugDetails,
   type LoadedPatientContext,
   type SmartSessionDetails,
   readSmartPatientContext
@@ -18,7 +20,12 @@ import { summarizePatientResource } from "./patientSummary";
 type AppState =
   | { status: "loading" }
   | { status: "ready"; context: LoadedPatientContext }
-  | { status: "error"; message: string; smartSession?: SmartSessionDetails };
+  | {
+      status: "error";
+      message: string;
+      smartSession?: SmartSessionDetails;
+      fhirDebug?: FhirDebugDetails;
+    };
 
 const demoContext: LoadedPatientContext = {
   source: "demo",
@@ -165,6 +172,36 @@ function SmartSessionDiagnostics({ smartSession }: { smartSession: SmartSessionD
   );
 }
 
+function FhirDebugDetailsView({ fhirDebug }: { fhirDebug: FhirDebugDetails }) {
+  const statusText = [fhirDebug.response.status, fhirDebug.response.statusText]
+    .filter(Boolean)
+    .join(" ");
+
+  return (
+    <div className="fhir-debug" aria-label="FHIR error diagnostics">
+      <p className="eyebrow">FHIR request</p>
+      <dl className="meta-grid">
+        <div>
+          <dt>Method</dt>
+          <dd>{fhirDebug.request.method ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt>URL</dt>
+          <dd>{fhirDebug.request.url ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt>Status</dt>
+          <dd>{statusText || "Not available"}</dd>
+        </div>
+      </dl>
+      <details className="debug-resource" open>
+        <summary>FHIR error response</summary>
+        <pre>{JSON.stringify(fhirDebug.response.body ?? {}, null, 2)}</pre>
+      </details>
+    </div>
+  );
+}
+
 export function App() {
   const [state, setState] = useState<AppState>({ status: "loading" });
   const isLaunchRoute = window.location.pathname === "/launch";
@@ -195,7 +232,8 @@ export function App() {
           setState({
             status: "error",
             message: getErrorMessage(error),
-            smartSession: getSmartSessionDetails(error)
+            smartSession: getSmartSessionDetails(error),
+            fhirDebug: getFhirDebugDetails(error)
           });
           return;
         }
@@ -229,6 +267,7 @@ export function App() {
           {state.smartSession ? (
             <SmartSessionDiagnostics smartSession={state.smartSession} />
           ) : null}
+          {state.fhirDebug ? <FhirDebugDetailsView fhirDebug={state.fhirDebug} /> : null}
           <a className="primary-link" href="/?demo=true">
             View demo patient
           </a>
