@@ -3,7 +3,10 @@ import { demoPatient } from "./demoPatient";
 import { PatientTable } from "./PatientTable";
 import {
   authorizeSmartLaunch,
+  getErrorMessage,
+  getSmartCallbackError,
   getSmartLaunchSettings,
+  hasSmartCallbackQuery,
   hasSmartLaunchQuery,
   type LoadedPatientContext,
   readSmartPatientContext
@@ -53,6 +56,10 @@ function LaunchRoute() {
           <div>
             <dt>Redirect URI</dt>
             <dd>{settings.redirectUri}</dd>
+          </div>
+          <div>
+            <dt>Launch endpoint</dt>
+            <dd>{settings.launchEndpoint}</dd>
           </div>
           <div>
             <dt>Scope</dt>
@@ -145,9 +152,24 @@ export function App() {
       return;
     }
 
+    const smartCallbackError = getSmartCallbackError();
+    const isSmartCallback = hasSmartCallbackQuery();
+
+    if (smartCallbackError) {
+      setState({ status: "error", message: smartCallbackError });
+      return;
+    }
+
     readSmartPatientContext()
       .then((context) => setState({ status: "ready", context }))
-      .catch(() => setState({ status: "ready", context: demoContext }));
+      .catch((error: unknown) => {
+        if (isSmartCallback) {
+          setState({ status: "error", message: getErrorMessage(error) });
+          return;
+        }
+
+        setState({ status: "ready", context: demoContext });
+      });
   }, [isLaunchRoute]);
 
   if (isLaunchRoute) {
