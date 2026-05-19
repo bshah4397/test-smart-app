@@ -15,7 +15,29 @@ ATHENA_TOKEN_URL = "https://api.preview.platform.athenahealth.com/oauth2/v1/toke
 DEPLOYMENT_TARGET = "Vercel";
 ```
 
-If `ATHENA_CLIENT_ID` is still the placeholder, stop and ask the user for the athenahealth client ID. If it is filled in, do not ask setup questions. Build directly.
+If `ATHENA_CLIENT_ID` is still the placeholder, do not stop. Build the app anyway so the user can deploy it once, get a Vercel URL, register that URL in athenahealth, receive a real client ID, replace the placeholder, and redeploy.
+
+If `ATHENA_CLIENT_ID` is filled in, do not ask setup questions. Build directly.
+
+The generated app must detect the placeholder client ID and show a clear setup-required message instead of attempting a SMART launch.
+
+## Bootstrap Flow
+
+The generated README must explain this two-pass bootstrap flow:
+
+1. Create or clone a GitHub repo.
+2. Run this prompt in the repo with an AI coding tool.
+3. Let the AI build the app using the placeholder client ID.
+4. Push the generated app to GitHub.
+5. Import/deploy the repo to Vercel.
+6. Copy the Vercel production URL.
+7. Create/register the app in the athenahealth developer portal using the Vercel URLs.
+8. Copy the generated athenahealth client ID.
+9. Replace `<REPLACE_WITH_ATHENA_CLIENT_ID>` in source code.
+10. Commit, push, and let Vercel redeploy.
+11. Launch the app from an entitled athena preview practice.
+
+This ordering is required because athenahealth app registration asks for launch and redirect URLs before it gives the app a client ID.
 
 ## Non-Negotiable Architecture
 
@@ -262,9 +284,16 @@ Never display access tokens, refresh tokens, authorization codes, PKCE code veri
 
 ## Error Handling Requirements
 
+If the app is still configured with `<REPLACE_WITH_ATHENA_CLIENT_ID>`, do not redirect to athena authorization and do not attempt token exchange. Show a setup-required message that tells the user to:
+
+```text
+Deploy to Vercel first, register the Vercel URLs in athenahealth, copy the generated client ID, replace the placeholder in source code, and redeploy.
+```
+
 Handle these cases:
 
 ```text
+Placeholder athena client ID
 Missing iss on launch
 Missing code on callback
 Missing launch transaction cookie
@@ -336,20 +365,26 @@ Write a README that explains:
 
 1. What this skeleton is.
 2. How to replace the athena client ID placeholder.
-3. How to run locally.
-4. How to deploy to Vercel.
-5. Exact athenahealth preview registration URLs:
+3. The two-pass bootstrap flow:
+   - build with placeholder client ID
+   - deploy to Vercel
+   - register Vercel URLs in athenahealth
+   - replace placeholder client ID
+   - redeploy
+4. How to run locally.
+5. How to deploy to Vercel.
+6. Exact athenahealth preview registration URLs:
    - Launch URL
    - Post-login redirect URL
    - Post-logout redirect URL
-6. Exact athenahealth create-app selections:
+7. Exact athenahealth create-app selections:
    - API Access: `My app will use Certified APIs ONLY`
    - App Category: `3-Legged OAuth for Providers`
    - CAPI confirmation: only confirm if accurate for the user's app/certification status
-7. Required scopes.
-8. Why no `.env` is required for this demo.
-9. Why the hardcoded cookie key is demo-only and not production-safe.
-10. Known athenahealth troubleshooting:
+8. Required scopes.
+9. Why no `.env` is required for this demo.
+10. Why the hardcoded cookie key is demo-only and not production-safe.
+11. Known athenahealth troubleshooting:
    - Browser token exchange can fail because of CORS; token exchange must be server-side.
    - Embedded athenaOne launches require `SameSite=None; Secure; Partitioned` cookies.
    - A successful OAuth flow can still fail with `403 Invalid Client` if the app/client is not entitled for the launched practice.

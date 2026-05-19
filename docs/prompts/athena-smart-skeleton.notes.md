@@ -75,6 +75,36 @@ GitHub repo -> Vercel import -> deploy
 
 No custom server process is needed. No Express server is needed. Next.js is also unnecessary for this skeleton and would introduce decisions that do not help the SMART flow.
 
+## Bootstrap Ordering Problem
+
+The prompt must allow the app to be built before the athena client ID exists.
+
+athenahealth app registration asks for URLs such as:
+
+```text
+Launch URL
+Post-login redirect URL
+Post-logout redirect URL
+```
+
+Those URLs do not exist until the app has been deployed somewhere, and this skeleton targets Vercel. That means the real setup order is:
+
+```text
+create/clone repo
+  -> run AI prompt
+  -> build app with placeholder client ID
+  -> push to GitHub
+  -> deploy to Vercel
+  -> copy Vercel URL
+  -> register app in athenahealth
+  -> receive client ID
+  -> replace placeholder in source
+  -> push/redeploy
+  -> launch from entitled athena practice
+```
+
+Earlier versions of the prompt said to stop if the client ID placeholder was still present. That was wrong for a low-friction bootstrap flow. The app should build with the placeholder and show a setup-required message if someone tries to launch before replacing it.
+
 ## Why No Environment Variables
 
 For a production app, secrets and environment-specific values should be configured outside source code.
