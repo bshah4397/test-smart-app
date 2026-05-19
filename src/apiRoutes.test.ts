@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { IncomingHttpHeaders } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import patientContextHandler from "../api/patient-context";
 import launchHandler from "../api/smart/launch";
@@ -27,17 +28,20 @@ class MockResponse {
 function createRequest({
   method = "GET",
   url,
-  cookie
+  cookie,
+  headers
 }: {
   method?: string;
   url: string;
   cookie?: string;
+  headers?: IncomingHttpHeaders;
 }): IncomingMessage {
   return {
     method,
     url,
     headers: {
       host: "localhost:3000",
+      ...headers,
       ...(cookie ? { cookie } : {})
     }
   } as IncomingMessage;
@@ -88,6 +92,31 @@ describe("Vercel SMART API routes", () => {
     );
     expect(String(cookies)).toContain("smart_pkce=");
     expect(String(cookies)).toContain("HttpOnly");
+  });
+
+  it("sets embedded-safe SMART launch cookies for HTTPS deployments", async () => {
+    const req = createRequest({
+      url: "/api/smart/launch?iss=https%3A%2F%2Ffhir.example%2Fr4&launch=launch-token",
+      headers: {
+        "x-forwarded-host": "test-smart-app-zeta.vercel.app",
+        "x-forwarded-proto": "https"
+      }
+    });
+    const res = createResponse();
+
+    await launchHandler(req, res);
+
+    const location = new URL(String(res.getHeader("Location")));
+    const cookies = String(res.getHeader("Set-Cookie"));
+
+    expect(location.searchParams.get("redirect_uri")).toBe(
+      "https://test-smart-app-zeta.vercel.app/api/smart/callback"
+    );
+    expect(cookies).toContain("smart_pkce=");
+    expect(cookies).toContain("HttpOnly");
+    expect(cookies).toContain("SameSite=None");
+    expect(cookies).toContain("Secure");
+    expect(cookies).toContain("Partitioned");
   });
 
   it("returns patient context by calling FHIR from the server-side session", async () => {

@@ -340,16 +340,18 @@ export function serializeCookie(
   value: string,
   options: { maxAgeSeconds: number; secure: boolean }
 ): string {
+  const sameSite = options.secure ? "None" : "Lax";
   const parts = [
     `${name}=${value}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Lax",
+    `SameSite=${sameSite}`,
     `Max-Age=${options.maxAgeSeconds}`
   ];
 
   if (options.secure) {
     parts.push("Secure");
+    parts.push("Partitioned");
   }
 
   return parts.join("; ");
