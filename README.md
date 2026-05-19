@@ -37,6 +37,6 @@ VITE_SMART_SCOPE="launch patient/Patient.r user/Patient.r openid fhirUser"
 SMART_SESSION_SECRET=replace-with-a-long-random-value
 ```
 
-`SMART_SESSION_SECRET` is server-only and is used to encrypt httpOnly launch/session cookies. Do not prefix it with `VITE_`.
+`SMART_SESSION_SECRET` is server-only and is used to encrypt httpOnly launch/session cookies. Do not prefix it with `VITE_`. For a throwaway demo, the app can run without it and will fall back to the public client ID as an insecure cookie key, but that should not be used for real patient data.
 
 Without a SMART authorization session, direct visits to `/` show demo patient data so the UI can be reviewed locally. SMART callback failures show an error instead of silently falling back to demo mode.

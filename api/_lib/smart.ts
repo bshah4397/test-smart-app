@@ -67,15 +67,12 @@ export class SmartApiError extends Error {
 
 export function getSmartSettings(env: EnvSource = process.env): SmartSettings {
   const clientId = env.SMART_CLIENT_ID ?? env.VITE_SMART_CLIENT_ID;
-  const sessionSecret = env.SMART_SESSION_SECRET;
 
   if (!clientId) {
     throw new SmartApiError(500, "Missing SMART client ID.");
   }
 
-  if (!sessionSecret) {
-    throw new SmartApiError(500, "Missing SMART_SESSION_SECRET.");
-  }
+  const sessionSecret = env.SMART_SESSION_SECRET ?? clientId;
 
   return {
     clientId,

@@ -6,7 +6,7 @@ import {
   clearCookie,
   isSecureRequest,
   redirect
-} from "./_lib/smart";
+} from "./_lib/smart.js";
 
 export default function handler(req: IncomingMessage, res: ServerResponse): void {
   if (!assertMethod(req, res, "GET")) {

@@ -9,7 +9,7 @@ import {
   sendJson,
   sendSmartError,
   type SmartSession
-} from "./_lib/smart";
+} from "./_lib/smart.js";
 
 export default async function handler(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (!assertMethod(req, res, "GET")) {
