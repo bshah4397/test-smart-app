@@ -123,6 +123,12 @@ h2 {
   color: #51625a;
 }
 
+.session-debug {
+  margin-top: 22px;
+  border-top: 1px solid #e7ece9;
+  padding-top: 18px;
+}
+
 .section-heading {
   margin-bottom: 18px;
 }

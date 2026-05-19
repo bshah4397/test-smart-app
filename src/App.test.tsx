@@ -62,6 +62,35 @@ describe("App SMART API integration", () => {
     expect(screen.queryByText("Demo mode")).not.toBeInTheDocument();
   });
 
+  it("prints SMART session scope when a SMART callback patient lookup fails", async () => {
+    window.history.replaceState(null, "", "/?smart=1");
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: "Patient lookup failed (403).",
+          smartSession: {
+            source: "smart",
+            patientId: "athena-patient-1",
+            serverUrl: "https://api.preview.platform.athenahealth.com/fhir/r4",
+            fhirUser: "Practitioner/example",
+            scope: "launch patient/Patient.r user/Patient.r openid fhirUser"
+          }
+        }),
+        {
+          status: 403,
+          headers: { "Content-Type": "application/json" }
+        }
+      )
+    );
+
+    render(<App />);
+
+    await screen.findByText("Unable to load patient context");
+    expect(screen.getByText("Patient lookup failed (403).")).toBeInTheDocument();
+    expect(screen.getByText("launch patient/Patient.r user/Patient.r openid fhirUser")).toBeInTheDocument();
+    expect(screen.getByText("athena-patient-1")).toBeInTheDocument();
+  });
+
   it("keeps demo mode available for direct non-SMART visits without a session", async () => {
     vi.mocked(fetch).mockResolvedValue(
       new Response(JSON.stringify({ error: "No active SMART session." }), {

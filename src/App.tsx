@@ -6,9 +6,11 @@ import {
   getErrorMessage,
   getSmartCallbackError,
   getSmartLaunchSettings,
+  getSmartSessionDetails,
   hasSmartCallbackQuery,
   hasSmartLaunchQuery,
   type LoadedPatientContext,
+  type SmartSessionDetails,
   readSmartPatientContext
 } from "./smartClient";
 import { summarizePatientResource } from "./patientSummary";
@@ -16,7 +18,7 @@ import { summarizePatientResource } from "./patientSummary";
 type AppState =
   | { status: "loading" }
   | { status: "ready"; context: LoadedPatientContext }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string; smartSession?: SmartSessionDetails };
 
 const demoContext: LoadedPatientContext = {
   source: "demo",
@@ -137,6 +139,32 @@ function ContextDetails({ context }: { context: LoadedPatientContext }) {
   );
 }
 
+function SmartSessionDiagnostics({ smartSession }: { smartSession: SmartSessionDetails }) {
+  return (
+    <div className="session-debug" aria-label="SMART session diagnostics">
+      <p className="eyebrow">SMART session from server</p>
+      <dl className="meta-grid">
+        <div>
+          <dt>FHIR server</dt>
+          <dd>{smartSession.serverUrl ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt>Patient ID</dt>
+          <dd>{smartSession.patientId ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt>FHIR user</dt>
+          <dd>{smartSession.fhirUser ?? "Not available"}</dd>
+        </div>
+        <div>
+          <dt>Granted scope</dt>
+          <dd>{smartSession.scope ?? "Not returned by token response"}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
 export function App() {
   const [state, setState] = useState<AppState>({ status: "loading" });
   const isLaunchRoute = window.location.pathname === "/launch";
@@ -164,7 +192,11 @@ export function App() {
       .then((context) => setState({ status: "ready", context }))
       .catch((error: unknown) => {
         if (isSmartCallback) {
-          setState({ status: "error", message: getErrorMessage(error) });
+          setState({
+            status: "error",
+            message: getErrorMessage(error),
+            smartSession: getSmartSessionDetails(error)
+          });
           return;
         }
 
@@ -194,6 +226,9 @@ export function App() {
           <p className="eyebrow">SMART on FHIR sample</p>
           <h1>Unable to load patient context</h1>
           <p>{state.message}</p>
+          {state.smartSession ? (
+            <SmartSessionDiagnostics smartSession={state.smartSession} />
+          ) : null}
           <a className="primary-link" href="/?demo=true">
             View demo patient
           </a>

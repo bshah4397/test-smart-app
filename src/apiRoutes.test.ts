@@ -158,4 +158,48 @@ describe("Vercel SMART API routes", () => {
       patient: { resourceType: "Patient", id: "patient-123" }
     });
   });
+
+  it("returns sanitized SMART session details when patient lookup is forbidden", async () => {
+    const sessionCookie = encryptCookieValue(
+      {
+        accessToken: "access-token",
+        tokenType: "Bearer",
+        patientId: "patient-123",
+        serverUrl: "https://fhir.example/r4",
+        scope: "launch patient/Patient.r user/Patient.r openid fhirUser",
+        fhirUser: "Practitioner/example",
+        expiresAt: 1778540000
+      },
+      "test-secret"
+    );
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify({ resourceType: "OperationOutcome" }), {
+        status: 403,
+        headers: { "Content-Type": "application/fhir+json" }
+      })
+    );
+    const req = createRequest({
+      url: "/api/patient-context",
+      cookie: `${SESSION_COOKIE_NAME}=${sessionCookie}`
+    });
+    const res = createResponse();
+
+    await patientContextHandler(req, res);
+
+    const payload = JSON.parse(res.body);
+
+    expect(res.statusCode).toBe(403);
+    expect(payload).toMatchObject({
+      error: "Patient lookup failed (403).",
+      smartSession: {
+        source: "smart",
+        patientId: "patient-123",
+        serverUrl: "https://fhir.example/r4",
+        scope: "launch patient/Patient.r user/Patient.r openid fhirUser",
+        fhirUser: "Practitioner/example",
+        expiresAt: 1778540000
+      }
+    });
+    expect(JSON.stringify(payload)).not.toContain("access-token");
+  });
 });

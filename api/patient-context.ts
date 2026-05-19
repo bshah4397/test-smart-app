@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   SESSION_COOKIE_NAME,
+  SmartApiError,
   assertMethod,
   decryptCookieValue,
   fetchPatientContext,
@@ -8,6 +9,7 @@ import {
   readCookie,
   sendJson,
   sendSmartError,
+  summarizeSmartSession,
   type SmartSession
 } from "./_lib/smart.js";
 
@@ -26,9 +28,19 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     }
 
     const session = decryptCookieValue<SmartSession>(sessionCookie, settings.sessionSecret);
-    const context = await fetchPatientContext(session);
+    try {
+      const context = await fetchPatientContext(session);
 
-    sendJson(res, 200, context);
+      sendJson(res, 200, context);
+    } catch (error) {
+      const statusCode = error instanceof SmartApiError ? error.statusCode : 500;
+      const message = error instanceof Error ? error.message : "Unable to load patient context.";
+
+      sendJson(res, statusCode, {
+        error: message,
+        smartSession: summarizeSmartSession(session)
+      });
+    }
   } catch (error) {
     sendSmartError(res, error);
   }

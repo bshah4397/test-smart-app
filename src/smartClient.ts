@@ -11,12 +11,31 @@ export type LoadedPatientContext = {
   scope?: string;
 };
 
+export type SmartSessionDetails = {
+  source: "smart";
+  serverUrl?: string;
+  patientId?: string | null;
+  fhirUser?: string | null;
+  scope?: string;
+  expiresAt?: number | null;
+};
+
 export type SmartLaunchSettings = {
   clientId: string;
   scope: string;
   redirectUri: string;
   launchEndpoint: string;
 };
+
+export class SmartPatientContextError extends Error {
+  smartSession?: SmartSessionDetails;
+
+  constructor(message: string, smartSession?: SmartSessionDetails) {
+    super(message);
+    this.name = "SmartPatientContextError";
+    this.smartSession = smartSession;
+  }
+}
 
 const DEFAULT_CLIENT_ID = "my_web_app";
 const DEFAULT_SCOPE = "launch patient/Patient.r user/Patient.r openid fhirUser";
@@ -61,7 +80,10 @@ export async function readSmartPatientContext(): Promise<LoadedPatientContext> {
   const payload = await readJsonResponse(response);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(payload, `Unable to load SMART session (${response.status}).`));
+    throw new SmartPatientContextError(
+      getErrorMessage(payload, `Unable to load SMART session (${response.status}).`),
+      getSmartSessionDetailsFromPayload(payload)
+    );
   }
 
   if (!isLoadedPatientContext(payload)) {
@@ -87,6 +109,18 @@ export function getErrorMessage(error: unknown, fallback = "Unable to load patie
   return fallback;
 }
 
+export function getSmartSessionDetails(error: unknown): SmartSessionDetails | undefined {
+  if (error instanceof SmartPatientContextError) {
+    return error.smartSession;
+  }
+
+  if (typeof error === "object" && error !== null && "smartSession" in error) {
+    return normalizeSmartSessionDetails((error as { smartSession?: unknown }).smartSession);
+  }
+
+  return undefined;
+}
+
 async function readJsonResponse(response: Response): Promise<unknown> {
   const text = await response.text();
 
@@ -109,4 +143,46 @@ function isLoadedPatientContext(payload: unknown): payload is LoadedPatientConte
     typeof (payload as { patient?: unknown }).patient === "object" &&
     (payload as { patient?: unknown }).patient !== null
   );
+}
+
+function getSmartSessionDetailsFromPayload(payload: unknown): SmartSessionDetails | undefined {
+  if (typeof payload !== "object" || payload === null || !("smartSession" in payload)) {
+    return undefined;
+  }
+
+  return normalizeSmartSessionDetails((payload as { smartSession?: unknown }).smartSession);
+}
+
+function normalizeSmartSessionDetails(value: unknown): SmartSessionDetails | undefined {
+  if (typeof value !== "object" || value === null) {
+    return undefined;
+  }
+
+  const details = value as Record<string, unknown>;
+
+  if (details.source !== "smart") {
+    return undefined;
+  }
+
+  return {
+    source: "smart",
+    serverUrl: stringOrUndefined(details.serverUrl),
+    patientId:
+      typeof details.patientId === "string" || details.patientId === null
+        ? details.patientId
+        : undefined,
+    fhirUser:
+      typeof details.fhirUser === "string" || details.fhirUser === null
+        ? details.fhirUser
+        : undefined,
+    scope: stringOrUndefined(details.scope),
+    expiresAt:
+      typeof details.expiresAt === "number" || details.expiresAt === null
+        ? details.expiresAt
+        : undefined
+  };
+}
+
+function stringOrUndefined(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
 }

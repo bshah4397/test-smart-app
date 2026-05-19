@@ -45,6 +45,15 @@ export type SmartSession = {
   expiresAt?: number | null;
 };
 
+export type SmartSessionSummary = {
+  source: "smart";
+  patientId: string | null;
+  serverUrl: string;
+  scope?: string;
+  fhirUser?: string | null;
+  expiresAt?: number | null;
+};
+
 type TokenResponse = {
   access_token?: string;
   token_type?: string;
@@ -265,6 +274,17 @@ export function createSmartSession(
       typeof tokenResponse.expires_in === "number"
         ? Math.floor(Date.now() / 1000) + tokenResponse.expires_in
         : null
+  };
+}
+
+export function summarizeSmartSession(session: SmartSession): SmartSessionSummary {
+  return {
+    source: "smart",
+    patientId: session.patientId,
+    serverUrl: session.serverUrl,
+    scope: session.scope,
+    fhirUser: session.fhirUser,
+    expiresAt: session.expiresAt
   };
 }
 
