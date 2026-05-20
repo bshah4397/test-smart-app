@@ -75,6 +75,48 @@ GitHub repo -> Vercel import -> deploy
 
 No custom server process is needed. No Express server is needed. Next.js is also unnecessary for this skeleton and would introduce decisions that do not help the SMART flow.
 
+## Vercel API Module Format Caveat
+
+Vite projects often include this in `package.json`:
+
+```json
+{
+  "type": "module"
+}
+```
+
+That can break Vercel Serverless Functions if the generated API code uses extensionless relative imports such as:
+
+```ts
+import { readCookie } from "../_lib/cookies";
+```
+
+With native ESM, Node expects the runtime file extension and may look for:
+
+```text
+/var/task/api/_lib/cookies
+```
+
+instead of:
+
+```text
+/var/task/api/_lib/cookies.js
+```
+
+The result is a Vercel function crash before the launch handler runs:
+
+```text
+ERR_MODULE_NOT_FOUND
+```
+
+For this skeleton, the prompt should choose the lowest-friction path:
+
+```text
+Do not include "type": "module" in package.json.
+```
+
+If a future implementation intentionally uses native ESM for API functions, all relative runtime imports must include `.js`. That is more fragile for this bootstrap prompt, so the preferred rule is to omit `"type": "module"`.
+
 ## Bootstrap Ordering Problem
 
 The prompt must allow the app to be built before the athena client ID exists.
@@ -307,6 +349,22 @@ For an AI-generated bootstrap skeleton, tests mainly act as guardrails against b
 - React error diagnostics
 
 Production apps should expand coverage, but this skeleton should avoid becoming test-heavy boilerplate.
+
+## Git Ignore Baseline
+
+The prompt should require a root `.gitignore`. Even though the skeleton avoids `.env`, generated or local runs will still create files that should not be committed.
+
+The minimum ignore list should include:
+
+```text
+node_modules
+dist
+.vercel
+.env
+.env.*
+*.local
+.DS_Store
+```
 
 ## Current Recommended Scope
 

@@ -344,6 +344,24 @@ Do not require custom server startup.
 
 Do not require Vercel environment variables.
 
+Do not include `"type": "module"` in `package.json`.
+
+Keep the package CommonJS-compatible for Vercel Serverless Functions so extensionless TypeScript imports in `/api` do not crash at runtime with `ERR_MODULE_NOT_FOUND`.
+
+If any generated API helper imports are emitted as native ESM, relative imports must include the runtime `.js` extension. The preferred skeleton path is simpler: omit `"type": "module"` from `package.json`.
+
+Include a root `.gitignore` with at least:
+
+```text
+node_modules
+dist
+.vercel
+.env
+.env.*
+*.local
+.DS_Store
+```
+
 ## Minimal Tests
 
 Add thin smoke tests. Do not overbuild coverage.
@@ -384,11 +402,12 @@ Write a README that explains:
 8. Required scopes.
 9. Why no `.env` is required for this demo.
 10. Why the hardcoded cookie key is demo-only and not production-safe.
-11. Known athenahealth troubleshooting:
+11. Known athenahealth and Vercel troubleshooting:
    - Browser token exchange can fail because of CORS; token exchange must be server-side.
    - Embedded athenaOne launches require `SameSite=None; Secure; Partitioned` cookies.
    - A successful OAuth flow can still fail with `403 Invalid Client` if the app/client is not entitled for the launched practice.
    - For athena preview, external app builders may only be entitled for specific practices.
+   - Vercel functions can crash with `ERR_MODULE_NOT_FOUND` if `package.json` has `"type": "module"` and serverless API files use extensionless relative imports. Omit `"type": "module"` for this skeleton.
 
 ## Final Verification
 
